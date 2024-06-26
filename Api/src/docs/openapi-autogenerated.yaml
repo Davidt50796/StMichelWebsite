@@ -1,0 +1,75 @@
+openapi: 3.0.0
+info:
+  title: Merchant Acquirer API
+  version: 0.1.0
+  description: Merchant Acquirer Backend
+servers:
+  - url: /api/v1
+components:
+  securitySchemes:
+    Authorization:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      value: Bearer <JWT token here>
+paths:
+  /users/login:
+    post:
+      tags:
+        - Portal Users
+      summary: Authenticate a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: d1superadmin1@email.com
+                  description: The email for login
+                password:
+                  type: string
+                  example: password
+                  description: The password for login in clear text
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Login successful
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Invalid credentials
+        '422':
+          description: Validation error
+  /users:
+    get:
+      tags:
+        - Portal Users
+      security:
+        - Authorization: []
+      summary: GET Portal Users List
+      responses:
+        '200':
+          description: GET Portal Users List
+tags: []
