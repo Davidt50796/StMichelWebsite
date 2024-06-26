@@ -1,0 +1,37 @@
+version: '3.1'
+networks:
+  stmp-net:
+    name: stmp-net
+
+services:
+  acquirer-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile-acquirer-backend
+    restart: unless-stopped
+    command: ["npm", "run", "acquirer-backend:start"]
+    ports:
+      - "5555:5555"
+    networks:
+      - stmp-net
+
+    depends_on:
+      - stmp-db
+      # - minio
+  
+  stmp-db:
+    container_name: stmp-db
+    image: mysql:8.0.33
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+    ports:
+      - 3552:3306
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./mysql-init-scripts:/docker-entrypoint-initdb.d
+      - data:/data/db
+    networks:
+      - mojaloop-net
