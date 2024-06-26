@@ -2,13 +2,12 @@ import path from 'path'
 import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
 import { type Request, type Response, type NextFunction } from 'express'
-import { audit } from '../utils/audit'
 import { AppDataSource } from '../database/dataSource'
-import { AuditActionType, AuditTrasactionStatus } from '../../../shared-lib'
 import { isUndefinedOrNull } from '../utils/utils'
 import { JwtTokenEntity } from '../entity/JwtTokenEntity'
 import { readEnv } from '../setup/readEnv'
 import ms from 'ms'
+import logger from '../services/logger'
 
 if (process.env.NODE_ENV === 'test') {
   dotenv.config({ path: path.resolve(process.cwd(), '.env.test'), override: true })
@@ -23,16 +22,7 @@ export async function authenticateJWT(req: Request, res: Response, next: NextFun
   const INACTIVITY_LIMIT_MS = ms(INACTIVITY_LIMIT)
 
   if (isUndefinedOrNull(authorization)) {
-    await audit(
-      AuditActionType.UNAUTHORIZED_ACCESS,
-      AuditTrasactionStatus.FAILURE,
-      'authenticateJWT',
-      'Authorization header is undefined',
-      'PortalUserEntity',
-      {},
-      {},
-      null
-    )
+    logger.error("Authorization Failed as no token provided");
     return res.status(401).send({ message: 'Authorization Failed' })
   }
 
@@ -52,16 +42,7 @@ export async function authenticateJWT(req: Request, res: Response, next: NextFun
     const userLimitTime = new Date(jwtTokenRecord.last_used)
 
     if (userLimitTime.getTime() + INACTIVITY_LIMIT_MS <= Date.now()) {
-      await audit(
-        AuditActionType.UNAUTHORIZED_ACCESS,
-        AuditTrasactionStatus.FAILURE,
-        'authenticateJWT',
-        'Inactivity time limit breached',
-        'PortalUserEntity',
-        {},
-        {},
-        jwtTokenRecord.user
-      )
+      logger.error("Inactivity time limit breached")
       await AppDataSource.manager.delete(JwtTokenEntity, { token })
       res.status(401).send({ message: 'Authorization Failed.' })
     } else {
@@ -78,20 +59,11 @@ export async function authenticateJWT(req: Request, res: Response, next: NextFun
       next()
     }
   } catch (err) {
-    await audit(
-      AuditActionType.UNAUTHORIZED_ACCESS,
-      AuditTrasactionStatus.FAILURE,
-      'authenticateJWT',
-      'Invalid token',
-      'PortalUserEntity',
-      {},
-      {},
-      null
-    )
     if (req.path === '/users/logout' && jwtTokenRecord !== null) {
       req.user = jwtTokenRecord.user
       next()
     } else {
+      logger.error('Authentication failed', err)
       res.status(401).send({ message: 'Authorization Failed', error: err })
     }
   }

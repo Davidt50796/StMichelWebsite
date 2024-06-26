@@ -6,8 +6,7 @@ import { AppDataSource } from '../../database/dataSource'
 import { PortalUserEntity } from '../../entity/PortalUserEntity'
 import logger from '../../services/logger'
 import jwt from 'jsonwebtoken'
-import { audit } from '../../utils/audit'
-import { AuditActionType, AuditTrasactionStatus, PortalUserStatus } from '../../../../shared-lib'
+import { PortalUserStatus } from '../../../../shared-lib'
 import { readEnv, readEnvAsBoolean } from '../../setup/readEnv'
 import { JwtTokenEntity } from '../../entity/JwtTokenEntity'
 import { OPTEntity } from '../../entity/OTPEntity'
@@ -22,11 +21,10 @@ export const LoginFormSchema = z.object({
 
 const JWT_SECRET = readEnv('JWT_SECRET', 'secret') as string
 const JWT_EXPIRES_IN = readEnv('JWT_EXPIRES_IN', '1d') as string
-
 const JWT_EXPIRES_IN_MS = ms(JWT_EXPIRES_IN)
-const RECAPTCHA_SECRET_KEY = readEnv('RECAPTCHA_SECRET_KEY', '') as string
-const RECAPTCHA_ENABLED = readEnvAsBoolean('RECAPTCHA_ENABLED', 'false')
-const OTP_VERIFICATION_ENABLED = readEnvAsBoolean('OTP_VERIFICATION_ENABLED', 'false')
+// const RECAPTCHA_SECRET_KEY = readEnv('RECAPTCHA_SECRET_KEY', '') as string
+// const RECAPTCHA_ENABLED = readEnvAsBoolean('RECAPTCHA_ENABLED', 'false')
+// const OTP_VERIFICATION_ENABLED = readEnvAsBoolean('OTP_VERIFICATION_ENABLED', 'false')
 
 /**
  * @openapi
@@ -87,26 +85,13 @@ export async function postUserLogin (req: Request, res: Response) {
     LoginFormSchema.parse(req.body)
   } catch (err) {
     if (err instanceof z.ZodError) {
-      logger.debug('Validation error: %o', err)
+      logger.error('Validation error: %o', err)
+      logger.error("Validation error: %o", req.body);
       return res.status(422).send({ message: 'Validation error' })
     }
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (RECAPTCHA_ENABLED) {
-      // Verify reCAPTCHA token
-      const { recaptchaToken } = req.body
-      const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
-      const response = await axios.post(verifyUrl)
-      if (response.data.success === false) {
-        logger.debug('reCAPTCHA verification failed: %o', response.data)
-        throw new Error('reCAPTCHA verification failed')
-      } else {
-        logger.debug('reCAPTCHA verification success: %o', response.data)
-      }
-    }
-
     const user = await AppDataSource.manager.findOne(PortalUserEntity, {
       where: { email: req.body.email }
     })
@@ -114,29 +99,13 @@ export async function postUserLogin (req: Request, res: Response) {
 
     if (user == null) {
       throw new Error('Invalid credentials')
-    }
-
-    if (user.status === PortalUserStatus.UNVERIFIED) {
+    } else if (user.status === PortalUserStatus.UNVERIFIED) {
       throw new Error('User is not verified')
-    }
-
-    if (user.status === PortalUserStatus.RESETPASSWORD) {
+    } else if (user.status === PortalUserStatus.RESETPASSWORD) {
       throw new Error('User need to reset password')
-    }
-
-    if (user.status === PortalUserStatus.BLOCKED) {
-      throw new Error('User is blocked')
-    }
-
-    if (user.status === PortalUserStatus.DISABLED) {
+    } else if (user.status === PortalUserStatus.DISABLED) {
       throw new Error('User is disabled')
-    }
-
-    if (user.status === PortalUserStatus.INACTIVE) {
-      throw new Error('User is inactive')
-    }
-
-    if (user.status !== PortalUserStatus.ACTIVE) {
+    } else if (user.status !== PortalUserStatus.ACTIVE) {
       throw new Error('User needs to be active to login')
     }
 
@@ -144,81 +113,55 @@ export async function postUserLogin (req: Request, res: Response) {
     if (!passwordMatch) {
       throw new Error('Invalid credentials')
     }
-    if(OTP_VERIFICATION_ENABLED){
-      // generate OTP and send to user
-      try {
-        const generatedOTP = await generateOTP(user.email)
-        if(generatedOTP){
-          sendOTPEmail(user.email, generatedOTP.toString())
-          return res.status(200).send({ success: true, message: 'OTP sent successfully' })
-        }else{
-          return res.status(500).send({ success: false, message: 'Error generating OTP' })
-        }
-      }catch (error) {
-        logger.error('Error generating OTP: %o', error)
-        return res.status(500).send({ success: false, message: 'Error generating OTP' })
-      }
-    }
+    // if(OTP_VERIFICATION_ENABLED){
+    //   // generate OTP and send to user
+    //   try {
+    //     // const generatedOTP = await generateOTP(user.email)
+    //     if(generatedOTP){
+    //       sendOTPEmail(user.email, generatedOTP.toString())
+    //       return res.status(200).send({ success: true, message: 'OTP sent successfully' })
+    //     }else{
+    //       return res.status(500).send({ success: false, message: 'Error generating OTP' })
+    //     }
+    //   }catch (error) {
+    //     logger.error('Error generating OTP: %o', error)
+    //     return res.status(500).send({ success: false, message: 'Error generating OTP' })
+    //   }
+    // }
 
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
-
     const jwtTokenObj = AppDataSource.manager.create(JwtTokenEntity, {
       token,
       user,
       expires_at: new Date(Date.now() + JWT_EXPIRES_IN_MS),
       last_used: new Date()
     })
-
     await AppDataSource.manager.save(jwtTokenObj)
-
-    logger.info('User %s logged in successfully.', user.email)
-    await audit(
-      AuditActionType.ACCESS,
-      AuditTrasactionStatus.SUCCESS,
-      'postUserLogin',
-      'User login successful',
-      'PortalUserEntity',
-      {},
-      {},
-      user
-    )
-
     res.json({ success: true, message: 'Login successful', token: token})
-  } catch (error: any) /* istanbul ignore next */ {
-    await audit(
-      AuditActionType.ACCESS,
-      AuditTrasactionStatus.FAILURE,
-      'postUserLogin',
-      'User login failed',
-      'PortalUserEntity',
-      {},
-      { error: error.message },
-      null
-    )
-
+  } catch (error: any) {
     logger.error('User %s login failed: %s', req.body.email, error.message)
     res.status(400).send({ success: false, message: error.message })
   }
 }
 
-async function generateOTP(userEmail: string) {
-  try{
-    const OTPEntityRepository = AppDataSource.getRepository(OPTEntity)
-    const existingOTP = await OTPEntityRepository.findOne({ where: { email: userEmail } })
-    if (existingOTP) {
-      await OTPEntityRepository.delete({ email: userEmail })
-    }
-    const otp = Math.floor(100000 + Math.random() * 900000)
-    const otpEntity = await OTPEntityRepository.create({
-      email: userEmail,
-      otp: otp.toString(),
-      issued_at: new Date(Date.now()),
-      expires_at: new Date(Date.now() + ms('4m'))
-    })
-    await OTPEntityRepository.save(otpEntity)
-  return otp
-  }catch (error) {
-    logger.error('Error generating OTP: %o', error)
-    return 
-  }
-}
+// async function generateOTP(userEmail: string) {
+//   try{
+//     const OTPEntityRepository = AppDataSource.getRepository(OPTEntity)
+//     const existingOTP = await OTPEntityRepository.findOne({ where: { email: userEmail } })
+//     if (existingOTP) {
+//       await OTPEntityRepository.delete({ email: userEmail })
+//     }
+//     const otp = Math.floor(100000 + Math.random() * 900000)
+//     const otpEntity = await OTPEntityRepository.create({
+//       email: userEmail,
+//       otp: otp.toString(),
+//       issued_at: new Date(Date.now()),
+//       expires_at: new Date(Date.now() + ms('4m'))
+//     })
+//     await OTPEntityRepository.save(otpEntity)
+//   return otp
+//   }catch (error) {
+//     logger.error('Error generating OTP: %o', error)
+//     return 
+//   }
+// }

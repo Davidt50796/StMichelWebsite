@@ -10,3 +10,9 @@
 {"level":"info","message":"Swagger API Documentation UI is running on http://localhost:3000/docs","service":"merchant-system","timestamp":"2024-06-26T13:25:44.088Z"}
 {"level":"info","message":"API is running on http://localhost:3000/api/v1","service":"merchant-system","timestamp":"2024-06-26T13:26:31.446Z"}
 {"level":"info","message":"Swagger API Documentation UI is running on http://localhost:3000/docs","service":"merchant-system","timestamp":"2024-06-26T13:26:31.448Z"}
+{"level":"info","message":"API is running on http://localhost:3000/api/v1","service":"merchant-system","timestamp":"2024-06-26T13:39:58.900Z"}
+{"level":"info","message":"Swagger API Documentation UI is running on http://localhost:3000/docs","service":"merchant-system","timestamp":"2024-06-26T13:39:58.902Z"}
+{"level":"info","message":"API is running on http://localhost:3000/api/v1","service":"merchant-system","timestamp":"2024-06-26T14:11:17.771Z"}
+{"level":"info","message":"Swagger API Documentation UI is running on http://localhost:3000/docs","service":"merchant-system","timestamp":"2024-06-26T14:11:17.774Z"}
+{"level":"info","message":"API is running on http://localhost:3000/api/v1","service":"merchant-system","timestamp":"2024-06-26T15:10:22.710Z"}
+{"level":"info","message":"Swagger API Documentation UI is running on http://localhost:3000/docs","service":"merchant-system","timestamp":"2024-06-26T15:10:22.713Z"}

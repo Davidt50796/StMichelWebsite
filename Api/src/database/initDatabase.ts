@@ -2,7 +2,7 @@ import { AppDataSource } from './dataSource'
 import path from 'path'
 import logger from '../services/logger'
 import {
-  PortalUserStatus, PortalUserType
+  PortalUserStatus
 } from '../../../shared-lib'
 import { hashPassword } from '../utils/utils'
 import { PortalUserEntity } from '../entity/PortalUserEntity'
@@ -29,7 +29,7 @@ export const initializeDatabase = async (): Promise<void> => {
         await seedDefaultHubSuperAdmin(AppDataSource)
       }
 
-      /* istanbul ignore next */
+      
       if (process.env.NODE_ENV !== 'test') {
         // only seed countries, subdivisions, districts in non-test environment
         // because it takes a long time to seed
@@ -37,7 +37,7 @@ export const initializeDatabase = async (): Promise<void> => {
       }
     })
     .catch((error) => {
-      /* istanbul ignore next */
+      
       throw error
     })
 }
@@ -68,7 +68,6 @@ export async function seedDefaultHubSuperAdmin (appDataSource: DataSource): Prom
   newUser.email = user.email
   newUser.password = await hashPassword(user.password)
   newUser.phone_number = user.phone_number
-  newUser.user_type = PortalUserType.HUB
   newUser.status = PortalUserStatus.ACTIVE
   newUser.role = newUserRole
   await appDataSource.manager.save(newUser)

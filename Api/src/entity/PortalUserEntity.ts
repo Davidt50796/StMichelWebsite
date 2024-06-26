@@ -1,7 +1,6 @@
 import { Entity, Column, OneToMany, ManyToOne } from 'typeorm'
-import { AuditEntity } from './AuditEntity'
 import { MerchantEntity } from './MerchantEntity'
-import { PortalUserStatus, PortalUserType } from '../../../shared-lib'
+import { PortalUserStatus } from '../../../shared-lib'
 import { PersonEntity } from './PersonEntity'
 import { DFSPEntity } from './DFSPEntity'
 import { PortalRoleEntity } from './PortalRoleEntity'
@@ -16,16 +15,9 @@ export class PortalUserEntity extends PersonEntity {
 
   @Column({
     type: 'simple-enum',
-    enum: PortalUserType,
-    nullable: false
-  })
-    user_type!: PortalUserType
-
-  @Column({
-    type: 'simple-enum',
     enum: PortalUserStatus,
     nullable: false,
-    default: PortalUserStatus.FRESH
+    default: PortalUserStatus.UNVERIFIED
   })
     status!: PortalUserStatus
 
@@ -34,9 +26,6 @@ export class PortalUserEntity extends PersonEntity {
 
   @OneToMany(() => MerchantEntity, merchant => merchant.checked_by)
     checked_merchants!: MerchantEntity[]
-
-  @OneToMany(() => AuditEntity, audit => audit.portal_user)
-    audits!: AuditEntity[]
 
   @OneToMany(() => EmailVerificationTokenEntity, emailToken => emailToken.portal_user)
     email_verification_tokens!: EmailVerificationTokenEntity[]

@@ -8,7 +8,6 @@ import {
 import { DFSPType } from '../../../shared-lib'
 import { PortalUserEntity } from './PortalUserEntity'
 import { MerchantEntity } from './MerchantEntity'
-import { AuditEntity } from './AuditEntity'
 import { PortalRoleEntity } from './PortalRoleEntity'
 
 @Entity('dfsps')
@@ -63,9 +62,6 @@ export class DFSPEntity {
 
   @OneToMany(() => MerchantEntity, merchant => merchant.default_dfsp)
     defaulted_merchants!: MerchantEntity[]
-
-  @OneToMany(() => AuditEntity, audit => audit.dfsp)
-    audits!: AuditEntity[]
 
   @ManyToOne(
     () => PortalRoleEntity,
