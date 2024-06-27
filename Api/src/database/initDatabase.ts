@@ -23,7 +23,6 @@ export const initializeDatabase = async (): Promise<void> => {
   await AppDataSource.initialize()
     .then(async () => {
       logger.info('MySQL Database Connection success.')
-
       await seedCurrency(AppDataSource)
       await seedDefaultRoles(AppDataSource)
 
