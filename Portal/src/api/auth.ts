@@ -1,17 +1,13 @@
 import instance from '../lib/axiosInstance'
 import { ChangePassword } from '../types/users'
+import { LoginForm } from '../lib/validations/login';
 
-export async function login(
-  email: string,
-  password: string,
-  recaptchaToken: string | null
-) {
-  const response = await instance.post<{ token: string }>('/users/login', {
-    email,
-    password,
-    recaptchaToken,
-  })
-  return response.data
+export async function login(loginObject: LoginForm) {
+  const response = await instance.post<{ token: string }>(
+    "/users/login",
+    loginObject
+  );
+  return response.data;
 }
 
 export async function logout() {

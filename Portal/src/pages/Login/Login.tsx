@@ -48,11 +48,7 @@ const Login = () => {
     setUserEmail(values.email)
     setUserPassword(values.password)
     setIsPending(true)
-    await login(
-      values.email,
-      values.password,
-      ''
-    ).then(async (data) => {
+    await login(values).then(async (data) => {
       if (data.token) {
         cookies.set('token', data.token);
         navigate('/')
@@ -172,12 +168,6 @@ const Login = () => {
                 </Link>
               </HStack>
 
-              {/* <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={recaptchaSiteKey}
-              onChange={onRecaptchaChange}
-            /> */}
-
               <CustomButton type='submit' size='md' mt='8' isLoading={isPending}>
                 Log In
               </CustomButton>
@@ -230,11 +220,12 @@ const TwoFactorAuth = (props: TwoFactorAuthProps) => {
 
   const resendOtp = async () => {
     setIsPending(true)
-    await login(
-      props.userEmail,
-      props.userPassword,
-      ''
-    ).then(async (res) => {
+    const loginObjectToSend: LoginForm = {
+      email: props.userEmail,
+      password: props.userPassword
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await login(loginObjectToSend).then(async (res: any) => {
       toast({
         title: 'OTP message!',
         description: res?.message || 'OTP Resent successfully',
