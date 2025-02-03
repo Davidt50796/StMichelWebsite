@@ -7,11 +7,12 @@ services:
   portal:
     build: 
       context: .
-      # dockerfile: ./Portal/DockerFile
       dockerfile: ./DockerFile-Portal
     restart: unless-stopped
     ports:
       - "3550:3550"
+    volumes:
+      - ./Portal/src:/app/Portal/src
     environment:
       - VITE_API_URL=http://localhost:3551/api
       - VITE_LIMIT_PER_PAGE=10
@@ -21,15 +22,15 @@ services:
       context: .
       dockerfile: ./DockerFile-Api
     restart: unless-stopped
-    # command: ["npm", "run", "start"]
+    command: ["npm", "run", "dev"]
     ports:
       - "3551:3551"
     networks:
       - stmp-net
-    # volumes:
+    volumes:
+      - ./Api/src:/app/Api/src
     #   - ${CENTRAL_SETTLEMENT_FOLDER:-"./central-settlement"}/docker/central-settlement/default.json:/opt/app/config/default.json
-    #   - ../central-settlement/src:/opt/app/src
-    #   - ${CENTRAL_SETTLEMENT_FOLDER:-"./central-settlement"}/docker/wait-for:/opt/wait-for
+      # - ${CENTRAL_SETTLEMENT_FOLDER:-"./central-settlement"}/docker/wait-for:/opt/wait-for
     depends_on:
       - stmp-db
       # - minio
